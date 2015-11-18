@@ -63,6 +63,8 @@ echo sprintf(
 
 ## Changelog
 
+### 1.0.1
+Add button at woocommerce_order_item_meta_end hook. Shows in email, review, thankyou screens
 ### 1.0
 First public version
 
