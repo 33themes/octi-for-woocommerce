@@ -3,7 +3,7 @@
  * Plugin Name: OCTI.io for seller
  * Plugin URI: http://www.octi.io
  * Description: Integration plugin for theme sellers at octi.io.
- * Version: 1.0
+ * Version: 1.0.1
  * Author: OCTI.io
  * Author URI: http://www.octi.io
  * Requires at least: 4.3
@@ -66,7 +66,7 @@ final class OCTI_FOR_SELLER {
      */
     public function octi_install() {
         global $wp;
-        
+
         if (!isset($_GET['octi']) || !isset($_GET['name'])) return;
         if (!preg_match('/[a-z0-9\-]+/i', $_GET['name'])) return;
         if (!wp_verify_nonce($_GET['nonce'], 'octi-install-'.$_GET['name'] )) return;
@@ -89,10 +89,13 @@ final class OCTI_FOR_SELLER {
         add_shortcode('octi_button', array($this, 'shortcode_octi_button') );
         add_shortcode('octi_link', array($this, 'shortcode_octi_link') );
         add_filter('woocommerce_available_download_link', array($this, 'woocommerce_available_download_link'), 1, 2);
+        add_action('woocommerce_order_item_meta_end', array($this, 'woocommerce_order_item_meta_end'), 5, 3 );
     }
 
     /**
      * WooCommerce Basic integration
+     * Show botton in the "available downloads" list. Next to each download link
+     * @version 1.0
      */
     public function woocommerce_available_download_link($html, $download) {
 
@@ -104,6 +107,23 @@ final class OCTI_FOR_SELLER {
         $octi_html = $this->get_octi_button(false, $this->get_internal_link($name));
 
         return $html.' '.apply_filters('octi_download_html', $octi_html);
+    }
+
+    /**
+     * WooCommerce Basic integration
+     * Show botton under each download item on the review/detail order
+     * https://github.com/woothemes/woocommerce/blob/5893875b0c03dda7b2d448d1a904ccfad3cdae3f/templates/order/order-details-item.php#L39
+     * @version 1.0.1
+     */
+    public function woocommerce_order_item_meta_end($item_id, $item, $order) {
+
+        $name = get_post_meta((int) $item['product_id'],'octi_name', true);
+
+        // Do nothing if not octi_name meta defined
+        if (empty($name)) return;
+
+        $octi_html = $this->get_octi_button(false, $this->get_internal_link($name));
+        echo apply_filters('octi_download_html', '<br>'.$octi_html, $item_id, $item, $order);
     }
 
 
@@ -258,8 +278,6 @@ final class OCTI_FOR_SELLER {
         if (!isset($this->settings)) {
             $this->settings = (array) get_option( 'octi-for-seller' );
         }
-
-        $url = OCTI_OTP::generate( $this->settings['key'], $_POST['octi_name'] );
 
         $response = wp_remote_head(OCTI_OTP::generate( $this->settings['key'], $_POST['octi_name'] ));
         if ($response['response']['code'] != 302) {
