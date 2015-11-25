@@ -69,11 +69,15 @@ final class OCTI_FOR_SELLER {
 
         if (!isset($_GET['octi']) || !isset($_GET['name'])) return;
         if (!preg_match('/[a-z0-9\-]+/i', $_GET['name'])) return;
-        if (!wp_verify_nonce($_GET['nonce'], 'octi-install-'.$_GET['name'] )) return;
-
         if (!isset($this->settings)) {
             $this->settings = (array) get_option( 'octi-for-seller' );
         }
+
+        if (!wp_verify_nonce($_GET['nonce'], 'octi-install-'.$_GET['name'] )) {
+            header('Location: '.get_permalink( get_option('woocommerce_myaccount_page_id') ).'?octi=afterlogin&slug='.$_GET['name']);
+            exit();
+        }
+
 
         header('Location: '.OCTI_OTP::generate( $this->settings['key'], $_GET['name'] ));
         exit();
